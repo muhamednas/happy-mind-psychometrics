@@ -16,6 +16,16 @@
 
 ---
 
+> [!IMPORTANT]
+> This project is being migrated to a production-ready hybrid Supabase stack
+> (Supabase Postgres + Auth + RLS + Storage, with a thin FastAPI service for the
+> candidate flow, scoring, and PDF reports). For the current setup, environment
+> variables, testing, and deployment, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+> Some sections below describe the original SQLite demo and are superseded by the
+> Supabase migrations in `supabase/migrations/`.
+
+---
+
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
