@@ -27,7 +27,7 @@ async def get_package(id: UUID, db: AsyncSession = Depends(get_db)):
 
 @router.get("/candidates", response_model=List[CandidateResponse])
 async def list_candidates(package_id: Optional[UUID] = None, db: AsyncSession = Depends(get_db)):
-    return await CandidateService.get_candidates(db, package_id)
+    return await CandidateService.get_candidates(db, package_id=package_id)
 
 @router.get("/candidates/{id}", response_model=CandidateResponse)
 async def get_candidate(id: UUID, db: AsyncSession = Depends(get_db)):

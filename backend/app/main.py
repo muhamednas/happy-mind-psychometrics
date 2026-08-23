@@ -1,16 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
-from app.database import engine, Base
+from app.database import engine
 from app.config import settings
 import contextlib
 
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create database tables on startup, dispose engine on shutdown."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Dispose the engine on shutdown.
+
+    The database schema is managed by Supabase migrations (supabase/migrations),
+    applied via `supabase db reset` / `supabase migration up` - never by
+    metadata.create_all.
+    """
     yield
     await engine.dispose()
 

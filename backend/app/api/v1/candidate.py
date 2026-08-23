@@ -1,79 +1,74 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
+from app.models.candidate import Candidate
 from app.schemas.candidate import CandidateLogin, CandidateResponse
-from app.schemas.response import ResponseSave, ResponseSubmit
+from app.schemas.response import ResponseSave
 from app.services.candidate_service import CandidateService
-from app.services.package_service import PackageService
+from app.auth import issue_candidate_token, get_current_candidate
 
 router = APIRouter()
 
-async def get_current_candidate_id(authorization: str = Header(None)) -> UUID:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    token = authorization.split(" ")[1]
-    try:
-        return UUID(token)
-    except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.post("/login", response_model=CandidateResponse)
 async def login(login_data: CandidateLogin, db: AsyncSession = Depends(get_db)):
     try:
         candidate = await CandidateService.login(db, login_data)
-        candidate.token = str(candidate.id)
-        return candidate
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    candidate.token = issue_candidate_token(candidate)
+    return candidate
+
 
 @router.get("/dashboard")
-async def get_dashboard(candidate_id: UUID = Depends(get_current_candidate_id), db: AsyncSession = Depends(get_db)):
-    candidate = await CandidateService.get_candidate(db, candidate_id)
-    if not candidate:
-        raise HTTPException(status_code=404, detail="Candidate not found")
-    package = await PackageService.get_package(db, candidate.package_id)
-    if not package:
-        raise HTTPException(status_code=404, detail="Package not found")
-    
-    # Query progresses
-    from app.models.candidate_progress import CandidateProgress
-    from sqlalchemy import select
-    res = await db.execute(select(CandidateProgress).where(CandidateProgress.candidate_id == candidate_id))
-    progresses = res.scalars().all()
-    
-    progress_map = {p.test_id: p.status for p in progresses}
-    
-    tests_with_status = []
-    for test in (package.tests or []):
-        t_id = test.get("id")
-        status = progress_map.get(t_id, "NOT_STARTED")
-        tests_with_status.append({
-            "id": t_id,
-            "title": test.get("title", ""),
-            "description": test.get("description", ""),
-            "status": status.lower()
-        })
-        
+async def get_dashboard(
+    candidate: Candidate = Depends(get_current_candidate), db: AsyncSession = Depends(get_db)
+):
+    return await CandidateService.get_dashboard(db, candidate)
+
+
+@router.get("/test/{assessment_id}")
+async def get_test(
+    assessment_id: UUID,
+    candidate: Candidate = Depends(get_current_candidate),
+    db: AsyncSession = Depends(get_db),
+):
+    assessment = await CandidateService.get_assessment_for_candidate(db, candidate, assessment_id)
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Test not found")
     return {
-        "package_title": package.title,
-        "candidate_name": candidate.full_name,
-        "tests": tests_with_status
+        "id": str(assessment.id),
+        "title": assessment.title,
+        "description": assessment.description,
+        "time_limit_minutes": assessment.time_limit_minutes,
+        "questions": assessment.questions,
     }
 
-@router.get("/test/{test_id}")
-async def get_test(test_id: str, candidate_id: UUID = Depends(get_current_candidate_id), db: AsyncSession = Depends(get_db)):
-    candidate = await CandidateService.get_candidate(db, candidate_id)
-    package = await PackageService.get_package(db, candidate.package_id)
-    for t in package.tests:
-        if t.get("id") == test_id:
-            return t
-    raise HTTPException(status_code=404, detail="Test not found")
 
 @router.post("/autosave")
-async def autosave(save_data: ResponseSave, candidate_id: UUID = Depends(get_current_candidate_id), db: AsyncSession = Depends(get_db)):
-    return await CandidateService.autosave_response(db, candidate_id, save_data)
+async def autosave(
+    save_data: ResponseSave,
+    candidate: Candidate = Depends(get_current_candidate),
+    db: AsyncSession = Depends(get_db),
+):
+    resp = await CandidateService.autosave_response(db, candidate, save_data)
+    return {"id": str(resp.id), "saved_at": resp.saved_at}
 
-@router.post("/test/{test_id}/submit")
-async def submit_test(test_id: str, candidate_id: UUID = Depends(get_current_candidate_id), db: AsyncSession = Depends(get_db)):
-    return await CandidateService.submit_test(db, candidate_id, test_id)
+
+@router.post("/test/{assessment_id}/submit")
+async def submit_test(
+    assessment_id: UUID,
+    candidate: Candidate = Depends(get_current_candidate),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        progress = await CandidateService.submit_test(db, candidate, assessment_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {
+        "assessment_id": str(progress.assessment_id),
+        "status": progress.status,
+        "score": float(progress.score) if progress.score is not None else None,
+        "completed_at": progress.completed_at,
+    }
