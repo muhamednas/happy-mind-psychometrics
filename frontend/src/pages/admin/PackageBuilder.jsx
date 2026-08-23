@@ -4,12 +4,11 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
-import { api } from '../../api/client';
+import { adminApi } from '../../lib/adminApi';
 
 export default function PackageBuilder() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [organization, setOrganization] = useState('');
   const [tests, setTests] = useState([]);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,26 +44,26 @@ export default function PackageBuilder() {
   };
 
   const handleSave = async () => {
-    if (!title || !organization || tests.length === 0) return;
+    if (!title || tests.length === 0) return;
     setIsSubmitting(true);
     try {
+      // The tenant (corporate_id) comes from the signed-in HR user's JWT, so we
+      // no longer send an organization name from the client.
       const data = {
         title,
         description,
-        organization_name: organization,
-        tests: tests.map((t, idx) => ({
-          id: `test-${idx}-${t.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+        tests: tests.map((t) => ({
           title: t.title,
-          description: t.description || "",
+          description: t.description || '',
           questions: t.questions.map((q, qIdx) => ({
             id: `q-${qIdx}-${q.text.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 15)}`,
             text: q.text,
             type: q.type,
-            options: q.options || []
-          }))
-        }))
+            options: q.options || [],
+          })),
+        })),
       };
-      const res = await api.admin.createPackage(data);
+      const res = await adminApi.createPackage(data);
       setGeneratedCode(res.access_code);
     } catch (error) {
       console.error(error);
@@ -99,12 +98,6 @@ export default function PackageBuilder() {
                 placeholder="e.g., Senior Developer Assessment" 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-              />
-              <Input 
-                label="Organization" 
-                placeholder="e.g., Acme Corp" 
-                value={organization}
-                onChange={(e) => setOrganization(e.target.value)}
               />
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Description</label>
@@ -239,10 +232,6 @@ export default function PackageBuilder() {
                 <div>
                   <span className="text-slate-400 block mb-1">Title</span>
                   <span className="text-slate-200">{title || 'Untitled Package'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block mb-1">Organization</span>
-                  <span className="text-slate-200">{organization || 'Not specified'}</span>
                 </div>
                 <div className="pt-4 border-t border-slate-800">
                   <span className="text-slate-400 block mb-2">Content</span>

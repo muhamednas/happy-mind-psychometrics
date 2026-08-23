@@ -40,11 +40,11 @@ export default function TestRunner() {
     if (!currentQuestion) return;
     const answer = currentAnswers[currentQuestion.id];
     if (answer === undefined || answer === '') return;
-    
+
     await api.candidate.autosave({
-      test_id: testId,
+      assessment_id: testId,
       question_id: currentQuestion.id,
-      response: answer
+      response: { answer },
     });
   };
 
