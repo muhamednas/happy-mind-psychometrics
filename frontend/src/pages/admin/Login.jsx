@@ -5,6 +5,7 @@ import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../context/authContext';
+import { isSupabaseConfigured } from '../../lib/supabaseClient';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -45,6 +46,13 @@ export default function AdminLogin() {
         <Card variant="elevated" className="p-8">
           <h1 className="text-2xl font-bold text-slate-50 mb-1">HR Admin Sign In</h1>
           <p className="text-slate-400 text-sm mb-6">Sign in to manage assessments and candidates.</p>
+
+          {!isSupabaseConfigured && (
+            <div className="text-sm text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-5">
+              Supabase is not configured. Set <code>VITE_SUPABASE_URL</code> and{' '}
+              <code>VITE_SUPABASE_ANON_KEY</code> in <code>frontend/.env.local</code> and restart the dev server.
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-5">
             <Input
