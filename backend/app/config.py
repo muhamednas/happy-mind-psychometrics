@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     SUPABASE_JWT_SECRET: str = "super-secret-jwt-token-with-at-least-32-characters-long"
     SUPABASE_STORAGE_BUCKET: str = "reports"
 
+    # Candidate-facing portal URL used in notification emails.
+    PORTAL_URL: str = "http://localhost:5173/portal"
+
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")

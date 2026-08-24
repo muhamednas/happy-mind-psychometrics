@@ -50,7 +50,41 @@ export const adminApi = {
     a.click();
     window.URL.revokeObjectURL(url);
   },
+
+  // HR-triggered reminder email (FastAPI service, authenticated with HR token).
+  async nudgeCandidate(candidateId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${API_BASE}/api/v1/admin/candidates/${candidateId}/nudge`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+    });
+    if (!res.ok) throw new Error('Failed to send reminder');
+    return res.json();
+  },
 };
+
+// Client-side CSV export of the (already RLS-scoped) candidate overview rows.
+export function exportCandidatesCsv(candidates) {
+  const headers = ['Name', 'Email', 'Package', 'Status', 'Progress', 'Avg Score'];
+  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = candidates.map((c) => [
+    c.full_name,
+    c.email,
+    c.package_title,
+    candidateStatus(c),
+    `${c.completed_assessments}/${c.total_assessments}`,
+    c.avg_score != null ? `${c.avg_score}%` : '-',
+  ].map(escape).join(','));
+  const csv = [headers.map(escape).join(','), ...rows].join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `candidates-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
 
 // Derive a coarse status label from the overview counts.
 export function candidateStatus(c) {

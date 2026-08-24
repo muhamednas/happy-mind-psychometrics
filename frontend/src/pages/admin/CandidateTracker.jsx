@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, Eye, MoreVertical } from 'lucide-react';
+import { Search, Filter, Download, Eye, Bell } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Badge from '../../components/ui/Badge';
-import { adminApi, candidateStatus } from '../../lib/adminApi';
+import { adminApi, candidateStatus, exportCandidatesCsv } from '../../lib/adminApi';
 
 export default function CandidateTracker() {
   const [search, setSearch] = useState('');
@@ -25,12 +25,27 @@ export default function CandidateTracker() {
     loadCandidates();
   }, []);
 
+  const [nudgingId, setNudgingId] = useState(null);
+
   const handleDownloadReport = async (candidateId) => {
     try {
       await adminApi.downloadReport(candidateId);
     } catch (err) {
       console.error('Failed to download report:', err);
       alert('Failed to download report: ' + err.message);
+    }
+  };
+
+  const handleNudge = async (candidateId) => {
+    setNudgingId(candidateId);
+    try {
+      await adminApi.nudgeCandidate(candidateId);
+      alert('Reminder email sent.');
+    } catch (err) {
+      console.error('Failed to send reminder:', err);
+      alert('Failed to send reminder: ' + err.message);
+    } finally {
+      setNudgingId(null);
     }
   };
 
@@ -54,7 +69,11 @@ export default function CandidateTracker() {
             <Filter className="w-4 h-4 mr-2" />
             Filter
           </Button>
-          <Button variant="secondary">
+          <Button
+            variant="secondary"
+            onClick={() => exportCandidatesCsv(candidates)}
+            disabled={candidates.length === 0}
+          >
             <Download className="w-4 h-4 mr-2" />
             Export CSV
           </Button>
@@ -114,11 +133,18 @@ export default function CandidateTracker() {
                             <Download className="w-4 h-4" />
                           </button>
                         )}
+                        {status !== 'completed' && (
+                          <button
+                            onClick={() => handleNudge(candidate.id)}
+                            disabled={nudgingId === candidate.id}
+                            className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-md transition-colors disabled:opacity-50"
+                            title="Send reminder email"
+                          >
+                            <Bell className="w-4 h-4" />
+                          </button>
+                        )}
                         <button className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors" title="View Details">
                           <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded-md transition-colors">
-                          <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
