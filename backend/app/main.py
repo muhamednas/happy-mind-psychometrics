@@ -36,6 +36,18 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 
 
+@app.get("/", tags=["health"])
+async def root():
+    """Visiting :8000 in a browser is not the app. Point people at the UI."""
+    return {
+        "service": settings.PROJECT_NAME,
+        "health": "/health",
+        "docs": "/docs",
+        "app": "http://localhost:5173",
+        "hint": "This is the API only. Open the website at http://localhost:5173/",
+    }
+
+
 @app.get("/health", tags=["health"])
 async def health_check():
     return {"status": "healthy", "service": settings.PROJECT_NAME}
