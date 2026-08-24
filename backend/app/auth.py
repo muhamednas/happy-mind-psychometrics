@@ -73,15 +73,37 @@ class HRUserContext:
         self.role = role
 
 
+# Cached JWKS client for asymmetric tokens (local `supabase start` uses ES256).
+_jwks_client: jwt.PyJWKClient | None = None
+
+
+def _jwks() -> jwt.PyJWKClient:
+    global _jwks_client
+    if _jwks_client is None:
+        url = f"{settings.SUPABASE_URL.rstrip('/')}/auth/v1/.well-known/jwks.json"
+        _jwks_client = jwt.PyJWKClient(url)
+    return _jwks_client
+
+
+def decode_hr_token(token: str) -> dict:
+    """Verify an HR access token.
+
+    Hosted projects and older local stacks mint HS256 tokens with JWT_SECRET.
+    Current local `supabase start` mints ES256 tokens; those are verified via JWKS.
+    """
+    header = jwt.get_unverified_header(token)
+    alg = header.get("alg", "HS256")
+    decode_kwargs = {"audience": "authenticated"}
+    if alg == "HS256":
+        return jwt.decode(token, settings.SUPABASE_JWT_SECRET, algorithms=["HS256"], **decode_kwargs)
+    key = _jwks().get_signing_key_from_jwt(token).key
+    return jwt.decode(token, key, algorithms=[alg], **decode_kwargs)
+
+
 async def get_current_hr_user(authorization: str | None = Header(None)) -> HRUserContext:
     token = _bearer(authorization)
     try:
-        payload = jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
+        payload = decode_hr_token(token)
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
