@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, Menu, X, Bell, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Menu, X, Bell, UserCircle, Building2, Brain } from 'lucide-react';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -8,6 +8,8 @@ export default function Layout() {
 
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Corporates', href: '/admin/corporates', icon: Building2 },
+    { name: 'Assessments', href: '/admin/assessments', icon: Brain },
     { name: 'Packages', href: '/admin/packages/create', icon: Package },
     { name: 'Candidates', href: '/admin/candidates', icon: Users },
   ];

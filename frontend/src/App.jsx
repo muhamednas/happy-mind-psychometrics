@@ -9,6 +9,8 @@ import PortalLayout from './components/PortalLayout';
 import Dashboard from './pages/admin/Dashboard';
 import PackageBuilder from './pages/admin/PackageBuilder';
 import CandidateTracker from './pages/admin/CandidateTracker';
+import CorporatesManager from './pages/admin/CorporatesManager';
+import AssessmentsManager from './pages/admin/AssessmentsManager';
 
 // Portal Pages
 import Login from './pages/portal/Login';
@@ -27,6 +29,8 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="packages/create" element={<PackageBuilder />} />
           <Route path="candidates" element={<CandidateTracker />} />
+          <Route path="corporates" element={<CorporatesManager />} />
+          <Route path="assessments" element={<AssessmentsManager />} />
         </Route>
 
         {/* Portal Routes */}

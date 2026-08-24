@@ -44,6 +44,64 @@ export const api = {
       const res = await fetch(`${BASE_URL}/admin/candidates`, { headers: getAuthHeaders() });
       return handleResponse(res);
     },
+    getCorporates: async () => {
+      const res = await fetch(`${BASE_URL}/admin/corporates`, { headers: getAuthHeaders() });
+      return handleResponse(res);
+    },
+    createCorporate: async (data) => {
+      const res = await fetch(`${BASE_URL}/admin/corporates`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateCorporate: async (id, data) => {
+      const res = await fetch(`${BASE_URL}/admin/corporates/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    deleteCorporate: async (id) => {
+      const res = await fetch(`${BASE_URL}/admin/corporates/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getCorporateConfig: async (id) => {
+      const res = await fetch(`${BASE_URL}/admin/corporates/${id}/config`, { headers: getAuthHeaders() });
+      return handleResponse(res);
+    },
+    getAssessments: async () => {
+      const res = await fetch(`${BASE_URL}/admin/assessments`, { headers: getAuthHeaders() });
+      return handleResponse(res);
+    },
+    createAssessment: async (data) => {
+      const res = await fetch(`${BASE_URL}/admin/assessments`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateAssessment: async (id, data) => {
+      const res = await fetch(`${BASE_URL}/admin/assessments/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    deleteAssessment: async (id) => {
+      const res = await fetch(`${BASE_URL}/admin/assessments/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse(res);
+    },
     getCandidate: async (id) => {
       const res = await fetch(`${BASE_URL}/admin/candidates/${id}`, { headers: getAuthHeaders() });
       return handleResponse(res);
