@@ -5,7 +5,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
-import { api } from '../../api/client';
+import { adminApi } from '../../lib/adminApi';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -17,8 +17,10 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const pkgs = await api.admin.getPackages();
-        const cands = await api.admin.getCandidates();
+        const [pkgs, cands] = await Promise.all([
+          adminApi.getPackages(),
+          adminApi.getCandidates(),
+        ]);
         setPackages(pkgs || []);
         setCandidates(cands || []);
       } catch (err) {

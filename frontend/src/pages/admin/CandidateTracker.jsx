@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, Eye, MoreVertical } from 'lucide-react';
+import { Search, Filter, Download, Eye, Bell } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Badge from '../../components/ui/Badge';
-import { api } from '../../api/client';
+import { adminApi, candidateStatus, exportCandidatesCsv } from '../../lib/adminApi';
 
 export default function CandidateTracker() {
   const [search, setSearch] = useState('');
@@ -14,7 +14,7 @@ export default function CandidateTracker() {
   useEffect(() => {
     async function loadCandidates() {
       try {
-        const data = await api.admin.getCandidates();
+        const data = await adminApi.getCandidates();
         setCandidates(data || []);
       } catch (err) {
         console.error('Failed to fetch candidates:', err);
@@ -25,12 +25,27 @@ export default function CandidateTracker() {
     loadCandidates();
   }, []);
 
+  const [nudgingId, setNudgingId] = useState(null);
+
   const handleDownloadReport = async (candidateId) => {
     try {
-      await api.admin.downloadReport(candidateId);
+      await adminApi.downloadReport(candidateId);
     } catch (err) {
       console.error('Failed to download report:', err);
       alert('Failed to download report: ' + err.message);
+    }
+  };
+
+  const handleNudge = async (candidateId) => {
+    setNudgingId(candidateId);
+    try {
+      await adminApi.nudgeCandidate(candidateId);
+      alert('Reminder email sent.');
+    } catch (err) {
+      console.error('Failed to send reminder:', err);
+      alert('Failed to send reminder: ' + err.message);
+    } finally {
+      setNudgingId(null);
     }
   };
 
@@ -54,7 +69,11 @@ export default function CandidateTracker() {
             <Filter className="w-4 h-4 mr-2" />
             Filter
           </Button>
-          <Button variant="secondary">
+          <Button
+            variant="secondary"
+            onClick={() => exportCandidatesCsv(candidates)}
+            disabled={candidates.length === 0}
+          >
             <Download className="w-4 h-4 mr-2" />
             Export CSV
           </Button>
@@ -87,7 +106,11 @@ export default function CandidateTracker() {
             <tbody className="divide-y divide-slate-800 text-slate-300">
               {candidates
                 .filter(c => c.full_name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase()))
-                .map((candidate) => (
+                .map((candidate) => {
+                  const status = candidateStatus(candidate);
+                  const progress = `${candidate.completed_assessments}/${candidate.total_assessments}`;
+                  const score = candidate.avg_score != null ? `${candidate.avg_score}%` : '-';
+                  return (
                   <tr key={candidate.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-100">{candidate.full_name}</div>
@@ -95,13 +118,13 @@ export default function CandidateTracker() {
                     </td>
                     <td className="px-6 py-4">{candidate.package_title}</td>
                     <td className="px-6 py-4">
-                      {getStatusBadge(candidate.status)}
+                      {getStatusBadge(status)}
                     </td>
-                    <td className="px-6 py-4 text-slate-400">{candidate.progress} Tests</td>
-                    <td className="px-6 py-4 font-medium text-slate-100">{candidate.score}</td>
+                    <td className="px-6 py-4 text-slate-400">{progress} Tests</td>
+                    <td className="px-6 py-4 font-medium text-slate-100">{score}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        {candidate.status === 'completed' && (
+                        {status === 'completed' && (
                           <button 
                             onClick={() => handleDownloadReport(candidate.id)}
                             className="p-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-md transition-colors cursor-pointer" 
@@ -110,16 +133,24 @@ export default function CandidateTracker() {
                             <Download className="w-4 h-4" />
                           </button>
                         )}
+                        {status !== 'completed' && (
+                          <button
+                            onClick={() => handleNudge(candidate.id)}
+                            disabled={nudgingId === candidate.id}
+                            className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-md transition-colors disabled:opacity-50"
+                            title="Send reminder email"
+                          >
+                            <Bell className="w-4 h-4" />
+                          </button>
+                        )}
                         <button className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition-colors" title="View Details">
                           <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded-md transition-colors">
-                          <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
             </tbody>
           </table>
         </div>
